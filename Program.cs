@@ -12,6 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<TspSolverService>();
+builder.Services.AddHostedService<TSP.Backend.Workers.TspBackgroundWorker>();
 
 var app = builder.Build();
 

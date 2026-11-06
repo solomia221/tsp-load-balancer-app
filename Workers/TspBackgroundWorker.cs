@@ -43,11 +43,24 @@ namespace TSP.Backend.Workers
 
                         try
                         {
-                            
-                            double[,] distanceMatrix = JsonSerializer.Deserialize<double[,]>(task.InputData!)
-                                ?? new double[,] { { 0, 1 }, { 1, 0 } };
 
-                            // оновлення прогресу (0-100%)
+                           
+                            double[][] jaggedArray = JsonSerializer.Deserialize<double[][]>(task.InputData!)
+                                ?? new double[][] { new double[] { 0, 1 }, new double[] { 1, 0 } };
+
+                            int citiesCount = jaggedArray.Length;
+                            double[,] distanceMatrix = new double[citiesCount, citiesCount];
+
+                            
+                            for (int i = 0; i < citiesCount; i++)
+                            {
+                                for (int j = 0; j < citiesCount; j++)
+                                {
+                                    distanceMatrix[i, j] = jaggedArray[i][j];
+                                }
+                            }
+
+                            // оновлення прогресу 
                             var bestRoute = tspService.SolveTsp(
                                 distanceMatrix,
                                 generations: 100,
