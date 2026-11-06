@@ -21,9 +21,9 @@ namespace TSP.Backend.Models
         public TaskStatusEnum Status { get; set; } = TaskStatusEnum.Pending;
 
         [Range(0, 100)]
-        public int Progress { get; set; } = 0; // Відсоток виконання
+        public int Progress { get; set; } = 0; 
 
-        // Використовуємо jsonb для гнучкого збереження масивів координат
+       
         [Required]
         [Column(TypeName = "jsonb")]
         public string? InputData { get; set; }
@@ -31,10 +31,12 @@ namespace TSP.Backend.Models
         [Column(TypeName = "jsonb")]
         public string? ResultData { get; set; }
 
-        public string? AssignedServerId { get; set; } // ID воркера, щоб інші сервери не перехопили задачу
+        public string? AssignedServerId { get; set; } 
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+        
+        public Guid? UserId { get; set; }
     }
 }
