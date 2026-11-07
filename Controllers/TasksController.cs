@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TSP.Backend.Data;
@@ -10,6 +12,7 @@ using TSP.Backend.Models;
 
 namespace TSP.Backend.Controllers
 {
+    [Authorize] 
     [Route("api/[controller]")]
     [ApiController]
     public class TasksController : ControllerBase
@@ -21,29 +24,26 @@ namespace TSP.Backend.Controllers
             _context = context;
         }
 
-        // 1. Створення нової задачі з валідацією
+        private Guid GetCurrentUserId()
+        {
+            return Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateTask([FromBody] CreateTaskRequest request)
         {
             if (request.DistanceMatrix == null || request.DistanceMatrix.Length == 0)
-            {
                 return BadRequest(new { message = "Матриця відстаней не може бути порожньою." });
-            }
 
-            int citiesCount = request.DistanceMatrix.Length;
-
-            // Валідація 
-            if (citiesCount > 20 || request.Generations > 1000)
-            {
+            if (request.DistanceMatrix.Length > 20 || request.Generations > 1000)
                 return BadRequest(new { message = "Перевищено ліміт: макс. 20 міст та 1000 ітерацій." });
-            }
 
             var task = new ComputeTask
             {
                 Id = Guid.NewGuid(),
+                UserId = GetCurrentUserId(), 
                 Status = TaskStatusEnum.Pending,
                 Progress = 0,
-             
                 InputData = JsonSerializer.Serialize(request.DistanceMatrix),
                 CreatedAt = DateTime.UtcNow
             };
@@ -54,25 +54,18 @@ namespace TSP.Backend.Controllers
             return CreatedAtAction(nameof(GetTaskById), new { id = task.Id }, new { taskId = task.Id, status = task.Status.ToString() });
         }
 
-        // 2. Перевірка стану та прогресу задачі за ID
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetTaskById(Guid id)
         {
-            var task = await _context.ComputeTasks.FindAsync(id);
+            var userId = GetCurrentUserId();
+            var task = await _context.ComputeTasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
-            if (task == null)
-            {
-                return NotFound(new { message = "Задача не знайдена." });
-            }
+            if (task == null) return NotFound(new { message = "Задача не знайдена або доступ заборонено." });
 
             List<int>? resultRoute = null;
             if (!string.IsNullOrEmpty(task.ResultData) && task.Status == TaskStatusEnum.Completed)
             {
-                try
-                {
-                    resultRoute = JsonSerializer.Deserialize<List<int>>(task.ResultData);
-                }
-                catch { }
+                try { resultRoute = JsonSerializer.Deserialize<List<int>>(task.ResultData); } catch { }
             }
 
             return Ok(new
@@ -88,21 +81,15 @@ namespace TSP.Backend.Controllers
             });
         }
 
-        // 3. Скасування виконання задачі
         [HttpPost("{id:guid}/cancel")]
         public async Task<IActionResult> CancelTask(Guid id)
         {
-            var task = await _context.ComputeTasks.FindAsync(id);
+            var userId = GetCurrentUserId();
+            var task = await _context.ComputeTasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
-            if (task == null)
-            {
-                return NotFound(new { message = "Задача не знайдена." });
-            }
-
+            if (task == null) return NotFound(new { message = "Задача не знайдена або доступ заборонено." });
             if (task.Status == TaskStatusEnum.Completed || task.Status == TaskStatusEnum.Failed)
-            {
                 return BadRequest(new { message = "Неможливо скасувати завершену задачу." });
-            }
 
             task.Status = TaskStatusEnum.Canceled;
             task.CompletedAt = DateTime.UtcNow;
@@ -111,27 +98,20 @@ namespace TSP.Backend.Controllers
             return Ok(new { message = "Задача успішно скасована." });
         }
 
-        // 4. Перегляд історії 
         [HttpGet]
         public async Task<IActionResult> GetAllTasks()
         {
+            var userId = GetCurrentUserId();
             var tasks = await _context.ComputeTasks
+                .Where(t => t.UserId == userId) 
                 .OrderByDescending(t => t.CreatedAt)
-                .Select(t => new
-                {
-                    t.Id,
-                    Status = t.Status.ToString(),
-                    t.Progress,
-                    t.CreatedAt,
-                    t.CompletedAt
-                })
+                .Select(t => new { t.Id, Status = t.Status.ToString(), t.Progress, t.CreatedAt, t.CompletedAt })
                 .ToListAsync();
 
             return Ok(tasks);
         }
     }
 
-    // DTO 
     public class CreateTaskRequest
     {
         public double[][] DistanceMatrix { get; set; } = Array.Empty<double[]>();

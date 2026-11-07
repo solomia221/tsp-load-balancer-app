@@ -9,11 +9,11 @@ using TSP.Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Підключення до БД
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 1. Налаштування автентифікації JWT
+
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing in appsettings.json");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -35,7 +35,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// 2. Налаштування Swagger для підтримки JWT (замінює старий AddSwaggerGen)
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -58,13 +58,13 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Реєстрація твого сервісу та фонового воркера
+
 builder.Services.AddScoped<TspSolverService>();
 builder.Services.AddHostedService<TSP.Backend.Workers.TspBackgroundWorker>();
 
 var app = builder.Build();
 
-// Налаштування HTTP request pipeline
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -73,7 +73,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 3. ОБОВ'ЯЗКОВО додати UseAuthentication перед UseAuthorization
 app.UseAuthentication();
 app.UseAuthorization();
 
