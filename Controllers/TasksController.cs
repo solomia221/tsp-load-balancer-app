@@ -38,10 +38,21 @@ namespace TSP.Backend.Controllers
             if (request.DistanceMatrix.Length > 20 || request.Generations > 1000)
                 return BadRequest(new { message = "Перевищено ліміт: макс. 20 міст та 1000 ітерацій." });
 
+            var userId = GetCurrentUserId();
+
+            
+            var activeTasksCount = await _context.ComputeTasks
+                .CountAsync(t => t.UserId == userId &&
+                                 (t.Status == TaskStatusEnum.Pending || t.Status == TaskStatusEnum.Processing));
+
+            if (activeTasksCount >= 5)
+                return BadRequest(new { message = "Перевищено ліміт: максимум 5 активних задач одночасно. Дочекайтесь їх завершення." });
+
+            
             var task = new ComputeTask
             {
                 Id = Guid.NewGuid(),
-                UserId = GetCurrentUserId(), 
+                UserId = userId,
                 Status = TaskStatusEnum.Pending,
                 Progress = 0,
                 InputData = JsonSerializer.Serialize(request.DistanceMatrix),
