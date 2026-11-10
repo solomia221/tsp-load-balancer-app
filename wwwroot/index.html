@@ -1,0 +1,408 @@
+﻿<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>TSP Solver</title>
+    <style>
+        :root {
+            --bg: #eef3f3;
+            --card: #fff;
+            --ink: #10282f;
+            --mu: #5d7178;
+            --ln: #d5e0e1;
+            --ac: #0b7a85;
+            --rt: #d9480f;
+            --ok: #1a7f4b;
+            --er: #c62828;
+            --wa: #a66300;
+            color-scheme: light dark
+        }
+
+        @media(prefers-color-scheme:dark) {
+            :root {
+                --bg: #0c171a;
+                --card: #132228;
+                --ink: #e4eff0;
+                --mu: #8fa6ab;
+                --ln: #25383d;
+                --ac: #35b6c2;
+                --rt: #ff8a5c;
+                --ok: #4cc38a;
+                --er: #ff7b7b;
+                --wa: #f0b04a
+            }
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font: 15px/1.5 "Segoe UI",system-ui,sans-serif
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        .mu {
+            color: var(--mu)
+        }
+
+        h1, h2 {
+            margin: 0 0 .6rem;
+            font-weight: 650;
+            letter-spacing: -.01em
+        }
+
+        h2 {
+            font-size: 1.1rem
+        }
+
+        input, textarea, button {
+            font: inherit;
+            color: inherit
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: .55rem .7rem;
+            border: 1px solid var(--ln);
+            border-radius: 8px;
+            background: var(--bg)
+        }
+
+            input:focus-visible, textarea:focus-visible, button:focus-visible {
+                outline: 2px solid var(--ac);
+                outline-offset: 1px
+            }
+
+        textarea {
+            resize: vertical;
+            font-family: Consolas,monospace;
+            font-size: 13px
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--mu);
+            margin: .7rem 0 .25rem
+        }
+
+        .btn {
+            background: var(--ac);
+            color: #fff;
+            border: 0;
+            border-radius: 8px;
+            padding: .6rem 1rem;
+            cursor: pointer;
+            font-weight: 600
+        }
+
+            .btn:disabled {
+                opacity: .5;
+                cursor: wait
+            }
+
+        .ghost {
+            background: none;
+            border: 1px solid var(--ln);
+            border-radius: 8px;
+            padding: .4rem .8rem;
+            cursor: pointer
+        }
+
+            .ghost:hover {
+                border-color: var(--ac)
+            }
+
+        .danger {
+            color: var(--er)
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--ln);
+            border-radius: 12px;
+            padding: 1.2rem
+        }
+
+        #auth {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 1rem
+        }
+
+        .auth-card {
+            width: min(380px,100%)
+        }
+
+        .tabs {
+            display: flex;
+            gap: .4rem;
+            margin: 1rem 0 .4rem
+        }
+
+            .tabs button, nav button {
+                flex: 1;
+                border: 0;
+                background: none;
+                padding: .5rem;
+                border-bottom: 2px solid transparent;
+                cursor: pointer;
+                color: var(--mu)
+            }
+
+                .tabs button.on, nav button.on {
+                    color: var(--ink);
+                    border-color: var(--ac);
+                    font-weight: 600
+                }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: .7rem 1.5rem;
+            background: var(--card);
+            border-bottom: 1px solid var(--ln);
+            flex-wrap: wrap
+        }
+
+            header b {
+                font-size: 1.1rem
+            }
+
+        nav {
+            display: flex;
+            gap: .5rem;
+            flex: 1
+        }
+
+            nav button {
+                flex: none;
+                padding: .5rem 1rem
+            }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.2rem;
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(300px,380px) 1fr
+        }
+
+        .wide {
+            grid-column: 1/-1
+        }
+
+        @media(max-width:800px) {
+            main {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .row {
+            display: flex;
+            gap: .6rem;
+            align-items: end
+        }
+
+            .row > * {
+                flex: 1
+            }
+
+        canvas {
+            width: 100%;
+            height: 220px;
+            border: 1px solid var(--ln);
+            border-radius: 8px;
+            margin-top: .7rem;
+            display: block
+        }
+
+        .err {
+            color: var(--er);
+            font-size: 13px;
+            margin-top: .6rem;
+            min-height: 1em
+        }
+
+        .task {
+            border: 1px solid var(--ln);
+            border-radius: 10px;
+            padding: .9rem;
+            margin-bottom: .7rem
+        }
+
+            .task > div {
+                display: flex;
+                justify-content: space-between;
+                gap: .6rem;
+                align-items: center;
+                flex-wrap: wrap
+            }
+
+        .bar {
+            height: 10px;
+            background: var(--bg);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: .6rem 0
+        }
+
+            .bar i {
+                display: block;
+                height: 100%;
+                background: var(--ac);
+                transition: width .6s
+            }
+
+        .badge {
+            padding: .1rem .6rem;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--c);
+            background: color-mix(in srgb,var(--c) 14%,transparent)
+        }
+
+        .queue {
+            background: color-mix(in srgb,var(--wa) 13%,transparent);
+            border-radius: 8px;
+            padding: .5rem .7rem;
+            font-size: 14px;
+            margin-top: .4rem
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px
+        }
+
+        th {
+            text-align: left;
+            color: var(--mu);
+            font-weight: 500;
+            padding: .4rem .5rem;
+            border-bottom: 1px solid var(--ln)
+        }
+
+        td {
+            padding: .5rem;
+            border-bottom: 1px solid var(--ln)
+        }
+
+        .tw {
+            overflow-x: auto
+        }
+
+        #toasts {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 99;
+            display: grid;
+            gap: .5rem;
+            max-width: min(360px,90vw)
+        }
+
+        .toast {
+            background: var(--ink);
+            color: var(--bg);
+            padding: .6rem .9rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--ac)
+        }
+
+            .toast.er {
+                border-color: var(--er)
+            }
+
+            .toast.ok {
+                border-color: var(--ok)
+            }
+
+        dialog {
+            border: 1px solid var(--ln);
+            border-radius: 12px;
+            background: var(--card);
+            color: var(--ink);
+            width: min(640px,94vw);
+            padding: 1.2rem
+        }
+
+            dialog::backdrop {
+                background: #0008
+            }
+
+            dialog canvas {
+                height: 340px
+            }
+    </style>
+</head>
+<body>
+    <div id="toasts"></div>
+
+    <section id="auth" class="hidden">
+        <div class="card auth-card">
+            <h1>TSP Solver</h1>
+            <p class="mu" style="margin:0">Задача комівояжера на кількох серверах</p>
+            <div class="tabs"><button class="on" data-mode="login">Вхід</button><button data-mode="register">Реєстрація</button></div>
+            <label for="u">Логін</label><input id="u" autocomplete="username">
+            <label for="p">Пароль (мінімум 4 символи)</label><input id="p" type="password" autocomplete="current-password">
+            <p class="err" id="auth-err"></p>
+            <button id="auth-btn" class="btn" style="width:100%">Увійти</button>
+        </div>
+    </section>
+
+    <div id="app" class="hidden">
+        <header>
+            <b>TSP Solver</b>
+            <nav></nav>
+            <span id="srv" class="mu"></span><span id="who" class="mu"></span><button id="logout" class="ghost">Вийти</button>
+        </header>
+
+        <main id="v-tasks">
+            <section class="card">
+                <h2>Нова задача</h2>
+                <div class="row">
+                    <div><label for="n">Кількість міст (3–20)</label><input id="n" type="number" min="3" max="20" value="10"></div>
+                    <button class="ghost" id="rnd" type="button">Згенерувати міста</button>
+                </div>
+                <label for="coords">Координати міст, по одному рядку: x y</label>
+                <textarea id="coords" rows="5"></textarea>
+                <canvas id="prev"></canvas>
+                <div class="row">
+                    <div><label for="gen">Ітерацій (1–1000)</label><input id="gen" type="number" min="1" max="1000" value="200"></div>
+                    <div><label for="pop">Популяція (10–200)</label><input id="pop" type="number" min="10" max="200" value="50"></div>
+                </div>
+                <p class="err" id="form-err"></p>
+                <button class="btn" id="run" style="width:100%">Запустити розрахунок</button>
+            </section>
+
+            <section class="card">
+                <h2>Активні задачі <small id="act-cnt" class="mu"></small></h2>
+                <div id="active"></div>
+            </section>
+
+            <section class="card wide">
+                <h2>Історія розрахунків</h2>
+                <div id="hist" class="tw"></div>
+            </section>
+        </main>
+
+    </div>
+
+    <dialog id="dlg"><div id="dlg-body"></div><p style="text-align:right;margin:1rem 0 0"><button class="btn" id="dlg-close">Закрити</button></p></dialog>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+﻿**/bin/
+**/obj/
+**/.vs/
+**/.git/
+.github/
+certs/
+docker-compose*.yml
+nginx.conf
+Dockerfile
+.dockerignore
+*.md

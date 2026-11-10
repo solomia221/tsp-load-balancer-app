@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace TSP.Backend.Services
 {
@@ -35,7 +36,7 @@ namespace TSP.Backend.Services
             return totalDistance;
         }
 
-        // 3. Функція схрещування (Ordered Crossover - OX)
+        // 3. Функція схрещування 
         public List<int> Crossover(List<int> parent1, List<int> parent2)
         {
             int length = parent1.Count;
@@ -67,7 +68,7 @@ namespace TSP.Backend.Services
             return child;
         }
 
-        // 4. Функція мутації (Swap Mutation)
+        
         public void Mutate(List<int> route, double mutationRate)
         {
             for (int i = 0; i < route.Count; i++)
@@ -80,8 +81,10 @@ namespace TSP.Backend.Services
             }
         }
 
-        // 5. Механізм запуску алгоритму з передачею поточного прогресу (0–100%)
-        public List<int> SolveTsp(double[,] distanceMatrix, int generations = 100, int populationSize = 50, double mutationRate = 0.1, Action<int>? reportProgress = null)
+        
+        public List<int> SolveTsp(double[,] distanceMatrix, int generations = 100, int populationSize = 50,
+            double mutationRate = 0.1, Action<int>? reportProgress = null, CancellationToken ct = default,
+            int delayMsPerGeneration = 0)
         {
             int citiesCount = distanceMatrix.GetLength(0);
             var population = GenerateInitialPopulation(populationSize, citiesCount);
@@ -91,7 +94,13 @@ namespace TSP.Backend.Services
 
             for (int gen = 0; gen < generations; gen++)
             {
-                // Сортуємо популяцію за довжиною маршруту (найкращі зверху)
+                ct.ThrowIfCancellationRequested();
+
+                
+                if (delayMsPerGeneration > 0 && ct.WaitHandle.WaitOne(delayMsPerGeneration))
+                    ct.ThrowIfCancellationRequested();
+
+                
                 population = population.OrderBy(r => CalculateTotalDistance(r, distanceMatrix)).ToList();
 
                 double currentBestDistance = CalculateTotalDistance(population[0], distanceMatrix);
@@ -118,7 +127,6 @@ namespace TSP.Backend.Services
 
                 population = newPopulation;
 
-                // Вираховуємо та передаємо прогрес у відсотках (0 - 100%)
                 if (reportProgress != null && generations > 0)
                 {
                     int percent = (int)((gen + 1) / (double)generations * 100);
